@@ -1,0 +1,214 @@
+---
+- name: Prepare nodes for Kubernetes
+  hosts: all
+  become: yes
+  tasks:
+    - name: Install required packages
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gpg
+        state: present
+        update_cache: yes
+
+    - name: Disable swap
+      command: swapoff -a
+      when: ansible_swaptotal_mb > 0
+
+    - name: Remove swap entry from fstab
+      replace:
+        path: /etc/fstab
+        regexp: '^\s*([^#]\S+)\s+\S+\s+swap\s+.*$'
+        replace: '# \1 swap disabled'
+
+    - name: Load kernel modules
+      copy:
+        dest: /etc/modules-load.d/k8s.conf
+        content: |
+          overlay
+          br_netfilter
+
+    - name: Ensure kernel modules loaded
+      modprobe:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - overlay
+        - br_netfilter
+
+    - name: Set sysctl params
+      copy:
+        dest: /etc/sysctl.d/k8s.conf
+        content: |
+          net.bridge.bridge-nf-call-iptables  = 1
+          net.ipv4.ip_forward                 = 1
+          net.bridge.bridge-nf-call-ip6tables = 1
+
+    - name: Apply sysctl params
+      command: sysctl --system
+
+    - name: Install containerd
+      apt:
+        name: containerd
+        state: present
+
+    - name: Configure containerd
+      shell: |
+        mkdir -p /etc/containerd
+        containerd config default > /etc/containerd/config.toml
+      args:
+        creates: /etc/containerd/config.toml
+
+    - name: Set SystemdCgroup in containerd config
+      replace:
+        path: /etc/containerd/config.toml
+        regexp: 'SystemdCgroup = false'
+        replace: 'SystemdCgroup = true'
+
+    - name: Restart containerd
+      systemd:
+        name: containerd
+        state: restarted
+        enabled: yes
+
+    - name: Ensure keyrings directory exists
+      file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: 0755
+
+    - name: Remove old Kubernetes repo definitions if any
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/apt/sources.list.d/kubernetes.list
+        - /etc/apt/sources.list.d/kubernetes-apt.list
+        - /etc/apt/trusted.gpg.d/kubernetes-apt-key.gpg
+
+    - name: Download Kubernetes Release key (ASCII)
+      get_url:
+        url: https://pkgs.k8s.io/core:/stable:/v1.34/deb/Release.key
+        dest: /etc/apt/keyrings/kubernetes-apt-keyring.asc
+        mode: '0644'
+        force: true
+
+    - name: Convert key to GPG format
+      command: >
+        gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+        /etc/apt/keyrings/kubernetes-apt-keyring.asc
+      args:
+        creates: /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+
+    - name: Add Kubernetes apt repo
+      copy:
+        dest: /etc/apt/sources.list.d/kubernetes.list
+        content: |
+          deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.34/deb/ /
+        mode: '0644'
+
+    - name: Update apt cache (after adding Kubernetes repo)
+      apt:
+        update_cache: yes
+ 
+    - name: Install kubeadm, kubelet, kubectl
+      apt:
+        name:
+          - kubelet
+          - kubeadm
+          - kubectl
+        state: present
+        update_cache: yes
+
+    - name: Hold kube packages
+      dpkg_selections:
+        name: "{{ item }}"
+        selection: hold
+      loop:
+        - kubelet
+        - kubeadm
+        - kubectl
+
+
+- name: Initialize master node
+  hosts: kube_masters
+  become: yes
+  tasks:
+    - name: Reset Kubernetes if already initialized
+      command: kubeadm reset -f
+      ignore_errors: yes
+
+    - name: Initialize Kubernetes cluster
+      command: kubeadm init --pod-network-cidr=10.244.0.0/16
+      args:
+        creates: /etc/kubernetes/admin.conf
+      register: kubeadm_init
+
+#    - name: Create .kube config directory
+#      file:
+#        path: /home/{{ ansible_user }}/.kube
+#        state: directory
+#        owner: "{{ ansible_user }}"
+#        group: "{{ ansible_user }}"
+#        mode: 0755
+
+#    - name: Ensure kubectl config exists for user
+#      copy:
+#        src: /etc/kubernetes/admin.conf
+#        dest: /home/{{ ansible_user }}/.kube/config
+#        owner: "{{ ansible_user }}"
+#        group: "{{ ansible_user }}"
+#        mode: 0644
+#        remote_src: yes
+#      delegate_to: "{{ groups['kube_masters'][0] }}"
+
+    - name: Fetch /etc/kubernetes/admin.conf to control node
+      fetch:
+        src: /etc/kubernetes/admin.conf
+        dest: /tmp/admin.conf
+        flat: yes
+      delegate_to: "{{ groups['kube_masters'][0] }}"
+
+    - name: Ensure kubectl can access config
+      file:
+        path: "/home/{{ ansible_user }}/.kube/config"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: '0644'
+
+    - name: Wait for kube-apiserver to be ready
+      shell: |
+        until kubectl get pods -n kube-system | grep kube-apiserver | grep Running; do sleep 5; done
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+
+    - name: Extract join command
+      command: kubeadm token create --print-join-command
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+      register: join_command
+
+    - name: Save join command
+      set_fact:
+        kube_join_cmd: "{{ join_command.stdout }}"
+
+
+- name: Join worker nodes
+  hosts: kube_workers
+  become: yes
+  tasks:
+    - name: Copy kubeconfig to worker nodes
+      copy:
+        src: /tmp/admin.conf
+        dest: /home/{{ ansible_user }}/.kube/config
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: '0600'
+
+    - name: Join cluster
+      command: "{{ hostvars[groups['kube_masters'][0]].kube_join_cmd }}"
+      args:
+        creates: /etc/kubernetes/kubelet.conf
+
