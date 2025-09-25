@@ -1,0 +1,63 @@
+---
+- name: Setup Kubernetes user and environment
+  hosts: all
+  become: yes
+  gather_facts: yes
+
+  vars:
+    k8s_user: k8suser
+    k8s_group: k8suser
+    k8s_password: "{{ 'password123' | password_hash('sha512') }}" 
+    bashrc_src: files/bashrc 
+
+  tasks:
+    - name: Ensure Kubernetes group exists
+      group:
+        name: "{{ k8s_group }}"
+        state: present
+
+    - name: Create Kubernetes user with password
+      user:
+        name: "{{ k8s_user }}"
+        group: "{{ k8s_group }}"
+        create_home: yes
+        shell: /bin/bash
+        password: "{{ k8s_password }}"
+
+    - name: Give the user passwordless sudo
+      copy:
+        dest: "/etc/sudoers.d/{{ k8s_user }}"
+        content: "{{ k8s_user }} ALL=(ALL) NOPASSWD:ALL"
+        owner: root
+        group: root
+        mode: '0440'
+
+    - name: Create .kube config directory
+      file:
+        path: /home/{{ ansible_user }}/.kube
+        state: directory
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: 0755
+
+    - name: Copy custom .bashrc to new user home
+      copy:
+        src: "{{ bashrc_src }}"
+        dest: "/home/{{ k8s_user }}/.bashrc"
+        owner: "{{ k8s_user }}"
+        group: "{{ k8s_group }}"
+        mode: '0644'
+
+    - name: Ensure SSH allows root login (or new user login)
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^PermitRootLogin'
+        line: 'PermitRootLogin yes'
+        state: present
+        backrefs: yes
+
+    - name: Restart SSH service
+      service:
+        name: sshd
+        state: restarted
+
