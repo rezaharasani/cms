@@ -146,24 +146,6 @@
         creates: /etc/kubernetes/admin.conf
       register: kubeadm_init
 
-#    - name: Create .kube config directory
-#      file:
-#        path: /home/{{ ansible_user }}/.kube
-#        state: directory
-#        owner: "{{ ansible_user }}"
-#        group: "{{ ansible_user }}"
-#        mode: 0755
-
-#    - name: Ensure kubectl config exists for user
-#      copy:
-#        src: /etc/kubernetes/admin.conf
-#        dest: /home/{{ ansible_user }}/.kube/config
-#        owner: "{{ ansible_user }}"
-#        group: "{{ ansible_user }}"
-#        mode: 0644
-#        remote_src: yes
-#      delegate_to: "{{ groups['kube_masters'][0] }}"
-
     - name: Fetch /etc/kubernetes/admin.conf to control node
       fetch:
         src: /etc/kubernetes/admin.conf

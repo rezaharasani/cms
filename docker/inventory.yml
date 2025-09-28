@@ -1,0 +1,25 @@
+all:
+  hosts:
+    master1:
+      ansible_host: 172.16.112.191
+    worker1:
+      ansible_host: 172.16.112.192
+    worker2:
+      ansible_host: 172.16.112.194
+    worker3:
+      ansible_host: 172.16.112.196
+
+  vars:
+      ansible_user: k8suser
+      ansible_ssh_pass: password123
+      ansible_python_interpreter: /usr/bin/python3
+
+  children:
+    kube_masters:
+      hosts:
+        master1:
+    kube_workers:
+      hosts:
+        worker1:
+        worker2:
+        worker3:
