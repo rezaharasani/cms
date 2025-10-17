@@ -5,7 +5,7 @@ It is happened using Prometheus and Grafana is one of the most common and powerf
 
 ## 🧩 Overview
 **Prometheus** → collects metrics (from K8s components, nodes, pods, etc.)  
-**Grafana** → visualizes metrics with dashboards
+**Grafana** → visualizes metrics with dashboards  
 **Kube State Metrics** + **Node Exporter** + **cAdvisor** → provide detailed metrics
 
 
