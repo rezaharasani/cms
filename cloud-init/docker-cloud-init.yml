@@ -88,11 +88,6 @@ runcmd:
   adduser ubuntu docker
 
 - |
-  # enable docker services
-  systemctl enable docker.service
-  systemctl enable containerd.service
-
-- |
   # disable swap
   sysctl vm.swappiness=0
   echo "vm.swappiness = 0" | tee -a /etc/sysctl.conf
@@ -119,6 +114,12 @@ runcmd:
     -v portainer_data:/data \
     portainer/portainer-ce
 
+- |
+  # restart and enable docker services
+  systemctl restart docker.service
+  systemctl restart containerd.service
+  systemctl enable docker.service
+  systemctl enable containerd.service
 - |
   # apt cleanup
   apt-get autoremove -y
