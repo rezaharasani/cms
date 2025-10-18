@@ -172,3 +172,98 @@ On the Applications page, click on Sync button of the guestbook application:
 A panel will be opened and then, click on *Synchronize* button. You can see more details by clicking at the guestbook 
 application:
 ![img_1.png](img/app_view_inside.png)
+
+
+## How to connect a remote k3s cluster to Argo CD
+If Argo CD runs in another Kubernetes cluster (or externally via a VM, Docker, etc.), you must register your k3s cluster 
+with Argo CD.
+
+### Step 1 – Get kubeconfig access to your k3s cluster
+On the machine where you run the `argocd` CLI:
+```shell
+export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+```
+
+If your `k3s.yaml` file uses `127.0.0.1:6443` as server (default), change it to your node’s **real IP or DNS name**, 
+e.g.:
+```shell
+sudo sed -i "s/127.0.0.1/$(hostname -I | awk '{print $1}')/" /etc/rancher/k3s/k3s.yaml
+```
+or edit manually:
+```shell
+server: https://<node-ip>:6443
+```
+
+### Step 2 – Test connection
+```shell
+kubectl get nodes
+```
+(make sure it works)
+
+
+### Step 3 – Change default k3s cluster name (optional)
+Because of being `default` k3s cluster name as default, in order to make difference between your clusters, you can 
+change default k3s cluster name from `default` to any name that you want (for example, k3s-cluster):
+
+#### 1. Export your kubeconfig:
+```shell
+cp ~/.kube/config ~/.kube/config.bak
+```
+
+#### 2. Edit it manually:
+```shell
+sudo nano ~/.kube/config
+```
+Find this block:
+```shell
+clusters:
+- cluster:
+    certificate-authority-data: LS0tLS1CRUdJTiBDRV...
+    server: https://127.0.0.1:6443
+  name: default
+```
+Change name: `default` → name: `k3s-cluster`.
+
+Then scroll down and update any context that references it:
+```shell
+contexts:
+- context:
+    cluster: k3s-cluster
+    user: admin@default
+  name: default
+```
+Optionally rename the context name too:
+```shell
+  name: k3s-cluster
+```
+Save and exit.
+
+Check:
+```shell
+$ kubectl config get-contexts
+CURRENT   NAME          CLUSTER       AUTHINFO
+*         k3s-cluster   k3s-cluster   admin@default
+```
+
+### Step 4 – Add the k3s cluster to Argo CD
+You can list available contexts:
+```shell
+$ kubectl config get-contexts -o name
+k3s-cluster
+```
+Then:
+```shell
+argocd cluster add k3s-cluster
+```
+
+Argo CD will create a `ServiceAccount`, `ClusterRole`, and `ClusterRoleBinding` in your k3s cluster to allow control 
+from Argo CD.
+
+When it succeeds:
+```shell
+$ argocd cluster list
+SERVER                          NAME         VERSION  STATUS   MESSAGE                                                  PROJECT
+https://192.168.2.25:6443       k3s-cluster           Unknown  Cluster has no applications and is not being monitored.  
+https://kubernetes.default.svc  in-cluster            Unknown  Cluster has no applications and is not being monitored.  
+```
+
