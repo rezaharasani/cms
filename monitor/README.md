@@ -34,7 +34,7 @@ The kube-prometheus-stack chart installs:
   * Kube State Metrics
 
 ```
-helm install kube-prometheus prometheus-community/kube-prometheus-stack -n monitoring
+helm install kube-prometheus prometheus-community/kube-prometheus-stack --namespace monitoring
 ```
 
 

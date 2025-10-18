@@ -10,7 +10,7 @@ multipass launch 24.04 \
   --name docker \
   --cpus 2 \
   --memory 4G \
-  --disk 40G \
+  --disk 20G \
   --cloud-init https://github.com/rezaharasani/cms/blob/main/cloud-init/docker-cloud-init.yml 
 ```
 
@@ -36,7 +36,7 @@ multipass launch \
   --name minikube \
   --cpus 2 \
   --memory 4G \
-  --disk 40G \
+  --disk 20G \
   --timeout 1800 \
   --cloud-init https://github.com/rezaharasani/cms/blob/main/cloud-init/minikube-cloud-init.yml
 ```
