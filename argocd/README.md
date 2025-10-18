@@ -1,6 +1,6 @@
 # How to set up ArgoCD on Linux
 
-## On ARM Architecture
+## Installation
 ### 1. Install kubectl (if not already installed)
 Argo CD requires access to a Kubernetes cluster. Install kubectl for `arm64`:
 ```shell
@@ -174,11 +174,12 @@ application:
 ![img_1.png](img/app_view_inside.png)
 
 
-## How to connect a remote k3s cluster to Argo CD
+## Connect a k3s cluster to Argo CD
 If Argo CD runs in another Kubernetes cluster (or externally via a VM, Docker, etc.), you must register your k3s cluster 
 with Argo CD.
 
-### Step 1 – Get kubeconfig access to your k3s cluster
+
+### 1. Get kubeconfig access to your k3s cluster
 On the machine where you run the `argocd` CLI:
 ```shell
 export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
@@ -194,23 +195,22 @@ or edit manually:
 server: https://<node-ip>:6443
 ```
 
-### Step 2 – Test connection
+### 2. Test connection
 ```shell
 kubectl get nodes
 ```
 (make sure it works)
 
-
-### Step 3 – Change default k3s cluster name (optional)
+### 3. Change the default k3s cluster name (optional)
 Because of being `default` k3s cluster name as default, in order to make difference between your clusters, you can 
 change default k3s cluster name from `default` to any name that you want (for example, k3s-cluster):
 
-#### 1. Export your kubeconfig:
+#### Export your kubeconfig:
 ```shell
 cp ~/.kube/config ~/.kube/config.bak
 ```
 
-#### 2. Edit it manually:
+#### Edit it manually:
 ```shell
 sudo nano ~/.kube/config
 ```
@@ -245,7 +245,7 @@ CURRENT   NAME          CLUSTER       AUTHINFO
 *         k3s-cluster   k3s-cluster   admin@default
 ```
 
-### Step 4 – Add the k3s cluster to Argo CD
+### 4. Add the k3s cluster to Argo CD
 You can list available contexts:
 ```shell
 $ kubectl config get-contexts -o name
