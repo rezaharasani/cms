@@ -1,6 +1,6 @@
 # How to set up ArgoCD on Linux
 
-## Installation
+## 🧩 Installation
 ### 1. Install kubectl (if not already installed)
 Argo CD requires access to a Kubernetes cluster. Install kubectl for `arm64`:
 ```shell
@@ -174,7 +174,7 @@ application:
 ![img_1.png](img/app_view_inside.png)
 
 
-## Connect a k3s cluster to Argo CD
+## 🧩 Connect a k3s cluster to Argo CD
 If Argo CD runs in another Kubernetes cluster (or externally via a VM, Docker, etc.), you must register your k3s cluster 
 with Argo CD.
 
