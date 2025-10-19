@@ -125,20 +125,20 @@ Login with username `admin` and that password.
 
 ## 5. Install and Connect Argo CD
 To see the full ArgoCD installation documentaion, Please 
-read [ArgoCD Installation Guide](https://github.com/rezaharasani/cms/blob/main/argocd/README.md) section. 
+read [ArgoCD Installation Guide](https://github.com/rezaharasani/cms/blob/main/argocd/README.md) section. Then, follow 
+the below instructions to connecto to ArgoCD by Rancher.
 
 
-### Step 3: Connect Rancher to Argo CD
-You can manage both tools together in two common ways:
+You can manage both tools together in two common ways in order to connect Rancher to ArgoCD:
 
-#### Option A: Manage Rancher via Argo CD (GitOps)
+### Option A: Manage Rancher via Argo CD (GitOps)
 Add Rancher Helm chart to Argo CD as an Application:
  * Repository: https://releases.rancher.com/server-charts/latest
  * Chart: rancher
  * Namespace: cattle-system
  * Values: include your Rancher config (hostname, replicas, etc.)
 
-#### Option B: Manage Argo CD via Rancher
+### Option B: Manage Argo CD via Rancher
  * Go to **Cluster → Apps → Deploy**, and add the Argo CD Helm chart from within Rancher’s UI.
  * Then Rancher can control lifecycle and visibility of Argo CD.
 
