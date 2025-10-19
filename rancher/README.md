@@ -124,33 +124,9 @@ Login with username `admin` and that password.
 
 
 ## 5. Install and Connect Argo CD
-### Step 1: Install Argo CD
-```shell
-kubectl create namespace argocd
-helm repo add argo https://argoproj.github.io/argo-helm
-helm repo update
+To see the full ArgoCD installation documentaion, Please 
+read [ArgoCD Installation Guide](https://github.com/rezaharasani/cms/blob/main/argocd/README.md) section. 
 
-helm install argocd argo/argo-cd --namespace argocd
-```
-
-Wait for pods:
-```shell
-kubectl get pods -n argocd
-```
-
-### Step 2: Access Argo CD UI
-Port-forward:
-```shell
-kubectl -n argocd port-forward svc/argocd-server 8080:443
-```
-
-Access UI at 👉 https://localhost:8080
-
-Get the admin password:
-```shell
-kubectl -n argocd get secret argocd-initial-admin-secret \
-  -o jsonpath="{.data.password}" | base64 -d; echo
-```
 
 ### Step 3: Connect Rancher to Argo CD
 You can manage both tools together in two common ways:

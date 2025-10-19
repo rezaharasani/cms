@@ -1,4 +1,4 @@
-# How to set up ArgoCD on Linux
+# ArgoCD Installation Guide
 
 ## 🧩 Installation
 To install ArgoCD on a Linux OS, we can use two different ways: Linux-Based, and Helm-Based commands. Some part of 
