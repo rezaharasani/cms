@@ -1,6 +1,12 @@
 # How to set up ArgoCD on Linux
 
 ## 🧩 Installation
+To install ArgoCD on a Linux OS, we can use two different ways: Linux-Based, and Helm-Based commands. Some part of 
+installation in both ways are the same. So, while installing the second way, we just explain the difference part.
+
+
+### 🧩 Install ArgoCD from Linux commnads:
+
 ### 1. Install kubectl (if not already installed)
 Argo CD requires access to a Kubernetes cluster. Install kubectl for `arm64`:
 ```shell
@@ -10,7 +16,7 @@ sudo mv kubectl /usr/local/bin/
 kubectl version --client
 ```
 
-### 2. Install Argo CD CLI (Arm64 version)
+### 2. Install Argo CD CLI
 Download the CLI for `arm64`:
 ```shell
 VERSION=$(curl --silent "https://api.github.com/repos/argoproj/argo-cd/releases/latest" | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
@@ -172,6 +178,37 @@ On the Applications page, click on Sync button of the guestbook application:
 A panel will be opened and then, click on *Synchronize* button. You can see more details by clicking at the guestbook 
 application:
 ![img_1.png](img/app_view_inside.png)
+
+
+### 🧩 Install ArgoCD from Helm Chart:
+#### Step 1: Install Argo CD
+```shell
+kubectl create namespace argocd
+helm repo add argo https://argoproj.github.io/argo-helm
+helm repo update
+
+helm install argocd argo/argo-cd --namespace argocd
+```
+
+Wait for pods:
+```shell
+kubectl get pods -n argocd
+```
+
+#### Step 2: Access Argo CD UI
+Port-forward:
+```shell
+kubectl -n argocd port-forward svc/argocd-server 8080:443 &
+```
+
+Access UI at 👉 https://localhost:8080
+
+Get the admin password:
+```shell
+kubectl -n argocd get secret argocd-initial-admin-secret \
+  -o jsonpath="{.data.password}" | base64 -d; echo
+```
+As I mentioned, other installation parts are the same and you can follow the above connection and syncing instructions.
 
 
 ## 🧩 Connect a k3s cluster to Argo CD
