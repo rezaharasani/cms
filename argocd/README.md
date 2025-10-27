@@ -61,7 +61,7 @@ configure Argo CD with ingress.
 #### Port Forwarding
 Kubectl port-forwarding can also be used to connect to the API server without exposing the service.
 ```shell
-kubectl port-forward svc/argocd-server -n argocd 8080:443
+kubectl port-forward svc/argocd-server -n argocd 8080:443 &
 ```
 The API server can then be accessed using https://localhost:8080
 
@@ -103,6 +103,55 @@ argocd cluster add docker-desktop
 The above command installs a ServiceAccount (argocd-manager), into the kube-system namespace of that kubectl context, 
 and binds the service account to an admin-level ClusterRole. Argo CD uses this service account token to perform its 
 management tasks (i.e. deploy/monitoring).
+
+
+**Note:**
+You maybe face with the following common errors while adding local cluster to ArgoCD:
+```shell
+rpc error: code = Unknown desc = error getting server version: failed to get server version:
+Get "https://127.0.0.1:6443/version?timeout=32s": dial tcp 127.0.0.1:6443: connect: connection refused
+```
+
+— means your local kubectl can connect to Docker Desktop via https://127.0.0.1:6443, but Argo CD runs inside a 
+Kubernetes pod, so 127.0.0.1 inside that pod points to itself, not your host. That’s why it fails — the cluster API 
+is not accessible from inside the Argo CD pod.
+
+You can fix it by changing the Docker Desktop API endpoint in your kubeconfig:
+
+1. Find the entry:
+```shell
+kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}'
+```
+→ it probably shows `https://127.0.0.1:6443`.
+
+2. Replace it with a reachable address, e.g.:
+```shell
+kubectl config set-cluster docker-desktop --server=https://kubernetes.docker.internal:6443
+```
+
+3. Test:
+```shell
+> kubectl --context docker-desktop version
+
+Client Version: v1.34.1
+Kustomize Version: v5.7.1
+Server Version: v1.34.1
+```
+
+4. Re-run:
+```shell
+> argocd cluster add docker-desktop
+...
+Cluster 'https://kubernetes.docker.internal:6443' added
+```
+
+5. You can see argocd cluster lists:
+```shell
+% argocd cluster list
+SERVER                                   NAME            VERSION  STATUS     
+https://kubernetes.docker.internal:6443  docker-desktop  1.34     Successful
+https://kubernetes.default.svc           in-cluster      1.34     Successful
+```
 
 
 ### 7. Create An Application From A Git Repository
