@@ -105,7 +105,7 @@ and binds the service account to an admin-level ClusterRole. Argo CD uses this s
 management tasks (i.e. deploy/monitoring).
 
 
-**Note:**
+#### 🚧⚠️ Note:
 You maybe face with the following common errors while adding local cluster to ArgoCD:
 ```shell
 rpc error: code = Unknown desc = error getting server version: failed to get server version:
